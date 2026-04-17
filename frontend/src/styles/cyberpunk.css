@@ -1,0 +1,161 @@
+/* 赛博朋克动画效果 */
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    stroke-dashoffset: 1000;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.glow-text {
+  text-shadow:
+    0 0 10px rgba(0, 255, 136, 0.8),
+    0 0 20px rgba(0, 255, 136, 0.6),
+    0 0 30px rgba(0, 255, 136, 0.4);
+}
+
+.neon-border {
+  box-shadow:
+    0 0 5px rgba(0, 255, 136, 0.5),
+    inset 0 0 5px rgba(0, 255, 136, 0.2);
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(0, 255, 136, 0.6);
+  border-radius: 50%;
+  animation: particle-float 10s infinite linear;
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(100vh) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(100px);
+    opacity: 0;
+  }
+}
+
+/* 加载动画 */
+.cyber-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.cyber-loader::before,
+.cyber-loader::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border: 2px solid transparent;
+  border-top-color: #00ff88;
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+}
+
+.cyber-loader::after {
+  width: 30px;
+  height: 30px;
+  border-top-color: #00ffff;
+  animation: spin 1s linear infinite reverse;
+}
+
+@keyframes spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* 数据卡片动画 */
+.data-card {
+  transition: all 0.3s ease;
+}
+
+.data-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 20px rgba(0, 255, 136, 0.2),
+    inset 0 0 20px rgba(0, 255, 136, 0.05);
+}
+
+/* 进度条动画 */
+.progress-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}

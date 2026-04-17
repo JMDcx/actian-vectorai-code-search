@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile app/models/schemas.py)",
+      "Bash(git -C /Users/jmdcx/Documents/Myproject/project/backend log --oneline -1)",
+      "Bash(git -C /Users/jmdcx/Documents/Myproject/project/backend status)",
+      "Bash(git show *)",
+      "Bash(python3 -m py_compile app/models/schemas.py)",
+      "Bash(xargs -I {} python3 -m py_compile {})"
+    ]
+  }
+}
