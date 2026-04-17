@@ -78,7 +78,8 @@ class VectorAIDBClient:
         self,
         query_vector: List[float],
         limit: int = 10,
-        threshold: float = 0.7
+        threshold: float = 0.7,
+        search_filter: Optional[Any] = None
     ) -> List[Dict[str, Any]]:
         """Search for similar vectors in VectorAI DB."""
         try:
@@ -86,7 +87,8 @@ class VectorAIDBClient:
             results = await self._client.points.search(
                 self.collection,
                 vector=query_vector,
-                limit=limit
+                limit=limit,
+                filter=search_filter
             )
             # Filter by threshold and convert to dict format
             filtered = [
@@ -122,14 +124,21 @@ class VectorAIDBClient:
         """Get similarity score between two vectors by their IDs."""
         try:
             await self._ensure_client()
-            points = await self._client.points.get(self.collection, ids=[id1, id2])
+            points = await self._client.points.get(
+                self.collection,
+                ids=[id1, id2],
+                with_vectors=True
+            )
 
             if len(points) < 2:
                 return 0.0
 
-            # Compute cosine similarity
-            vec1 = np.array(points[0].vector)
-            vec2 = np.array(points[1].vector)
+            # Handle RetrievedPoint which uses 'vectors' attribute
+            vec1 = np.array(points[0].vectors) if hasattr(points[0], 'vectors') and points[0].vectors else None
+            vec2 = np.array(points[1].vectors) if hasattr(points[1], 'vectors') and points[1].vectors else None
+
+            if vec1 is None or vec2 is None:
+                return 0.0
 
             dot_product = np.dot(vec1, vec2)
             norm1 = np.linalg.norm(vec1)
@@ -158,6 +167,51 @@ class VectorAIDBClient:
         """Close the client."""
         if self._client:
             await self._client.__aexit__(None, None, None)
+
+    async def scroll_all(
+        self,
+        limit: int = 1000,
+        with_vectors: bool = True
+    ) -> List[Dict[str, Any]]:
+        """Scroll through all points in the collection."""
+        try:
+            await self._ensure_client()
+            # Use scroll to get all points
+            results = await self._client.points.scroll(
+                self.collection,
+                limit=limit,
+                with_payload=True,
+                with_vectors=with_vectors
+            )
+
+            # VectorAI scroll returns a tuple: (points_list, offset_id)
+            if isinstance(results, tuple):
+                points, offset_id = results
+            elif isinstance(results, list):
+                points = results
+            else:
+                print(f"Unexpected result format: {type(results)}")
+                return []
+
+            # Process the points list
+            if len(points) > 0:
+                first = points[0]
+                if hasattr(first, 'id'):
+                    return [
+                        {
+                            "id": r.id,
+                            "vector": list(r.vectors) if with_vectors and hasattr(r, 'vectors') and r.vectors else None,
+                            "payload": r.payload if hasattr(r, 'payload') else {}
+                        }
+                        for r in points
+                    ]
+                else:
+                    print(f"Unexpected point format: {type(first)}")
+                    return []
+            return []
+        except Exception as e:
+            print(f"Error scrolling points: {e}")
+            return []
 
 
 # Global instance

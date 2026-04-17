@@ -34,8 +34,11 @@ def test_graph_data_limit_parameter():
 
 def test_graph_data_nodes_have_required_fields():
     """Test that nodes have all required fields."""
-    response = client.get("/api/visualization/graph-data?limit=10")
+    response = client.get("/api/visualization/graph-data?limit=50")
     data = response.json()
+
+    assert response.status_code == 200
+    assert "nodes" in data
 
     if len(data["nodes"]) > 0:
         node = data["nodes"][0]

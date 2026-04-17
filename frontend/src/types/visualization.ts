@@ -6,6 +6,11 @@ export interface Node {
   code_type: 'function' | 'class' | 'import' | 'comment'
   complexity: number
   metadata: NodeMetadata
+  fx?: number | null
+  fy?: number | null
+  index?: number
+  vx?: number
+  vy?: number
 }
 
 export interface NodeMetadata {

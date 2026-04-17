@@ -33,8 +33,10 @@ async def get_graph_data(
         snippets = all_snippets[:limit]
         vectors = []
         metadata_list = []
+        snippet_ids = []
 
         for snippet in snippets:
+            snippet_ids.append(snippet["id"])
             vectors.append(snippet["vector"])
             metadata_list.append(snippet["payload"])
 
@@ -50,9 +52,9 @@ async def get_graph_data(
 
         # Build nodes
         nodes = []
-        for i, (coord, metadata) in enumerate(zip(coordinates_2d, metadata_list)):
+        for i, (snippet_id, coord, metadata) in enumerate(zip(snippet_ids, coordinates_2d, metadata_list)):
             nodes.append({
-                "id": metadata.get("id", f"node_{i}"),
+                "id": snippet_id,
                 "x": float(coord[0]),
                 "y": float(coord[1]),
                 "language": metadata.get("language", "unknown"),
@@ -79,15 +81,7 @@ async def get_graph_data(
 
 async def _fetch_all_snippets() -> List[Dict[str, Any]]:
     """Fetch all snippets from VectorAI DB."""
-    try:
-        await vectorai_client._ensure_client()
-        # Use scroll to get all points
-        # For MVP, we'll use a simple approach
-        collection_info = await vectorai_client._client.collections.get(vectorai_client.collection)
-        # Return empty if we can't fetch - will implement proper scroll
-        return []
-    except Exception:
-        return []
+    return await vectorai_client.scroll_all(limit=1000, with_vectors=True)
 
 
 def _calculate_complexity(metadata: Dict[str, Any]) -> int:
@@ -102,6 +96,9 @@ async def _compute_similarity_edges(
     max_edges_per_node: int = 5
 ) -> List[Dict[str, Any]]:
     """Compute edges between nearby nodes."""
+    if len(nodes) < 2:
+        return []
+
     coords = np.array([[n["x"], n["y"]] for n in nodes])
     tree = KDTree(coords)
 
@@ -109,12 +106,22 @@ async def _compute_similarity_edges(
     edge_set = set()
 
     for i, node in enumerate(nodes):
+        k = min(max_edges_per_node + 1, len(nodes))
         distances, indices = tree.query(
             [node["x"], node["y"]],
-            k=min(max_edges_per_node + 1, len(nodes))
+            k=k
         )
 
-        for idx in indices[0][1:]:
+        # Handle both scalar and array returns from KDTree.query
+        if np.isscalar(indices):
+            indices = [indices]
+        elif indices.ndim == 0:
+            indices = [indices.item()]
+        elif indices.ndim > 1:
+            indices = indices[0]
+
+        # Skip first index (it's the node itself)
+        for idx in indices[1:] if len(indices) > 1 else []:
             neighbor = nodes[idx]
             edge_key = tuple(sorted([node["id"], neighbor["id"]]))
             if edge_key in edge_set:

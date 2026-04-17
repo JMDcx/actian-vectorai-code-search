@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 import time
 
+from actian_vectorai import Filter, Field as VectorField
 from app.models.schemas import SearchRequest, SearchResponse, SearchResultItem, CodeSnippet
 from app.services.embeddings import embedding_service
 from app.core.database import vectorai_client
@@ -24,11 +25,30 @@ async def search_codebase(request: SearchRequest) -> SearchResponse:
     # Generate query embedding
     query_embedding = embedding_service.generate_query_embedding(request.query)
 
+    # Build VectorAI DB filter
+    filter_conditions = []
+
+    if request.language:
+        filter_conditions.append(
+            VectorField("payload.language").eq(request.language)
+        )
+    if request.code_type:
+        filter_conditions.append(
+            VectorField("payload.code_type").eq(request.code_type)
+        )
+    if request.file_path_pattern:
+        filter_conditions.append(
+            VectorField("payload.file_path").eq(request.file_path_pattern)
+        )
+
+    search_filter = Filter(must=filter_conditions) if filter_conditions else None
+
     # Search VectorAI DB
     search_results = await vectorai_client.search_vectors(
         query_vector=query_embedding,
         limit=request.limit,
-        threshold=request.threshold
+        threshold=request.threshold,
+        search_filter=search_filter
     )
 
     # Convert to search response format
@@ -43,6 +63,15 @@ async def search_codebase(request: SearchRequest) -> SearchResponse:
             explanation=_generate_explanation(snippet, request.query)
         )
         results.append(result_item)
+
+    # Apply sorting
+    if request.sort_by == "similarity":
+        # Default: already sorted by similarity score (descending)
+        results.sort(key=lambda x: x.similarity_score, reverse=True)
+    elif request.sort_by == "file_path":
+        results.sort(key=lambda x: x.snippet.file_path)
+    elif request.sort_by == "complexity":
+        results.sort(key=lambda x: max(1, x.snippet.end_line - x.snippet.start_line + 1), reverse=True)
 
     execution_time = (time.time() - start_time) * 1000
 

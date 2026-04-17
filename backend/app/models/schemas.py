@@ -65,8 +65,8 @@ class SearchRequest(BaseModel):
     threshold: float = Field(default=0.7, ge=0.0, le=1.0)
 
     # Filter fields
-    language: Optional[str] = Field(default=None, pattern="^(python|javascript|typescript)$")
-    code_type: Optional[str] = Field(default=None, pattern="^(function|class|import)$")
+    language: Optional[Language] = None
+    code_type: Optional[CodeType] = None
     file_path_pattern: Optional[str] = Field(default=None, max_length=200)
     sort_by: Optional[str] = Field(
         default="similarity",
