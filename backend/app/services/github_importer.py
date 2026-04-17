@@ -1,6 +1,7 @@
 # backend/app/services/github_importer.py
 import re
 import time
+import shutil
 import tempfile
 import aiohttp
 import git
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import Tuple, Optional, Callable, Awaitable
 from datetime import datetime, timedelta
 import asyncio
+from app.services.embeddings import embedding_service
 
 
 _temp_dirs = {}  # task_id -> (dir_path, created_at)
@@ -24,7 +26,6 @@ def cleanup_old_temp_dirs():
     to_remove = []
     for task_id, (dir_path, created_at) in _temp_dirs.items():
         if now - created_at > 86400:  # 24 hours
-            import shutil
             try:
                 shutil.rmtree(dir_path, ignore_errors=True)
                 to_remove.append(task_id)
@@ -149,34 +150,34 @@ class GitHubImporter:
             RepositoryNotFound: If repo not found
         """
         # Step 1: Parse URL
-        await self._emit_progress("cloning", 0, "验证仓库...")
+        await self._emit_progress("cloning", 0, "Validating repository...")
         parsed = self._parse_github_url(url)
         if not parsed:
             raise ValueError("Invalid GitHub URL format")
         owner, repo = parsed
 
         # Step 2: Check size
-        await self._emit_progress("cloning", 5, "检查仓库大小...")
+        await self._emit_progress("cloning", 5, "Checking repository size...")
         size_mb = await self._check_repo_size(owner, repo)
         if size_mb > self.MAX_SIZE_MB:
             raise RepositoryTooLarge(size_mb, self.MAX_SIZE_MB)
 
         # Step 3: Clone repository
-        await self._emit_progress("cloning", 10, "克隆仓库中...")
+        await self._emit_progress("cloning", 10, "Cloning repository...")
         temp_dir = tempfile.mkdtemp(prefix="github_import_")
         repo_path = str(Path(temp_dir) / repo)
 
         try:
-            git.Repo.clone_from(url, repo_path, depth=1)
+            await asyncio.to_thread(git.Repo.clone_from, url, repo_path, depth=1)
 
             # Step 4: Count files
-            await self._emit_progress("cloning", 50, "统计文件...")
+            await self._emit_progress("cloning", 50, "Counting files...")
             file_count = self._count_files(repo_path)
             if file_count > self.MAX_FILES:
                 raise TooManyFiles(file_count, self.MAX_FILES)
 
             # Step 5: Parse and index
-            await self._emit_progress("parsing", 60, "解析代码...")
+            await self._emit_progress("parsing", 60, "Parsing code...")
 
             indexed_files = 0
             total_snippets = 0
@@ -194,8 +195,7 @@ class GitHubImporter:
 
                     for snippet in snippets:
                         # Generate embedding using existing service
-                        from app.services.embeddings import embedding_service
-                        embedding = embedding_service.generate_embedding(snippet.code)
+                        embedding = await asyncio.to_thread(embedding_service.generate_embedding, snippet.code)
 
                         # Store in VectorAI DB
                         await vectorai_client.insert_vector(
@@ -215,14 +215,15 @@ class GitHubImporter:
                         total_snippets += 1
 
                     indexed_files += 1
-                    progress = 60 + int((indexed_files / min(file_count, 100)) * 20)
-                    await self._emit_progress("parsing", progress, f"已解析 {indexed_files}/{file_count} 个文件")
+                    progress = 60 + int((indexed_files / file_count) * 20)
+                    progress = min(progress, 80)  # Cap at 80% for this stage
+                    await self._emit_progress("parsing", progress, f"Parsed {indexed_files}/{file_count} files")
 
                 except Exception as e:
                     print(f"Error processing file {file_path}: {e}")
                     continue
 
-            await self._emit_progress("indexing", 90, "完成...")
+            await self._emit_progress("indexing", 90, "Completing...")
 
             return {
                 "total_snippets": total_snippets,
