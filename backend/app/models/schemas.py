@@ -38,7 +38,7 @@ class CodeSnippet(BaseModel):
     code_type: CodeType
     code: str
     start_line: int
-    end_line: number
+    end_line: int
     embedding: Optional[List[float]] = None
     metadata: CodeSnippetMetadata = Field(default_factory=CodeSnippetMetadata)
     created_at: datetime = Field(default_factory=datetime.utcnow)
