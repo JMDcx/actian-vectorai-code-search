@@ -49,7 +49,7 @@ class GitHubImporter:
             Tuple of (owner, repo) or None if invalid
         """
         # Remove .git suffix if present
-        url = url.rstrip('.git')
+        url = url.removesuffix('.git')
         pattern = r"^https://github\.com/([^/]+)/([^/]+)$"
         match = re.match(pattern, url)
         return (match.group(1), match.group(2)) if match else None

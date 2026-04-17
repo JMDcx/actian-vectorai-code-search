@@ -19,6 +19,11 @@ def test_parse_github_url_with_git_extension():
     result = importer._parse_github_url("https://github.com/user/repo.git")
     assert result == ("user", "repo")
 
+def test_parse_github_url_repo_name_ending_in_g():
+    importer = GitHubImporter(progress_callback=None)
+    result = importer._parse_github_url("https://github.com/user/testing")
+    assert result == ("user", "testing")
+
 @pytest.mark.asyncio
 async def test_check_repo_size_within_limit():
     importer = GitHubImporter()
