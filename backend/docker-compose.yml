@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  vectoraidb:
+    image: williamimoh/actian-vectorai-db:latest
+    container_name: vectoraidb
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    stop_grace_period: 2m
+
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=False
+      - VECTORAI_ENDPOINT=vectoraidb:50051
+    depends_on:
+      - vectoraidb
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
