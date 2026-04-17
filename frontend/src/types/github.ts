@@ -25,15 +25,10 @@ export interface ImportStats {
   duration_ms: number
 }
 
-export interface WebSocketMessage {
-  type: 'step' | 'complete' | 'error'
-  step?: 'cloning' | 'parsing' | 'indexing'
-  message?: string
-  progress?: number
-  stats?: ImportStats
-  error?: string
-  details?: Record<string, any>
-}
+export type WebSocketMessage =
+  | { type: 'step'; step: 'cloning' | 'parsing' | 'indexing'; progress: number; message?: string }
+  | { type: 'complete'; stats: ImportStats }
+  | { type: 'error'; error: string; message?: string }
 
 export interface ImportState {
   status: 'idle' | 'importing' | 'completed' | 'error'
