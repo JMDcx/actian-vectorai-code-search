@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Code2, Home, Search, Github } from 'lucide-react'
+import { Code2, Home, Search, Github, Network } from 'lucide-react'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -41,6 +41,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 <Search className="h-4 w-4" />
                 <span>Search</span>
+              </Link>
+              <Link
+                to="/visualization"
+                className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+                  isActive('/visualization')
+                    ? 'bg-primary-600 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <Network className="h-4 w-4" />
+                <span>Visualization</span>
               </Link>
             </nav>
           </div>
