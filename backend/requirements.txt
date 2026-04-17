@@ -17,3 +17,5 @@ actian-vectorai>=0.1.0b2
 # Vector visualization dependencies
 umap-learn>=0.5.0
 scipy>=1.10.0,<1.14.0
+gitpython>=3.1.40
+aiohttp>=3.9.0
