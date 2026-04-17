@@ -131,6 +131,33 @@ curl -X POST "http://localhost:8000/api/index" \
   -d '{"path": "/path/to/your/codebase", "recursive": true}'
 ```
 
+### GitHub Import
+
+Import public GitHub repositories directly from the web interface:
+
+1. Navigate to the home page (http://localhost:5173)
+2. Enter a GitHub repository URL (e.g., https://github.com/pallets/flask)
+3. Click "开始导入" to start the import process
+4. Monitor real-time progress with step-by-step updates
+5. Search the indexed code using semantic search
+
+**Limits:**
+- Maximum repository size: 50MB
+- Maximum file count: 500 files
+- Only public repositories supported
+
+**Via API:**
+```bash
+curl -X POST "http://localhost:8000/api/github/import" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://github.com/username/repo"}'
+```
+
+**WebSocket Progress:**
+```bash
+ws://localhost:8000/ws/github/import/{task_id}
+```
+
 ### Searching Code
 
 **Via Web Interface:**
@@ -374,6 +401,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Monaco Editor** for the excellent web-based code editor
 - **FastAPI** for the modern, fast web framework
 - **React** for the user interface framework
+
+## ❓ Frequently Asked Questions
+
+### How do I import my code?
+
+**Public GitHub Repositories:** Use the web interface on the home page to import public repositories by URL.
+
+**Private Repositories or Local Files:** Use the backend API directly:
+
+```bash
+curl -X POST "http://localhost:8000/api/index/" \
+  -H "Content-Type: application/json" \
+  -d '{"path": "./my-project", "recursive": true}'
+```
 
 ## 📞 Support
 
