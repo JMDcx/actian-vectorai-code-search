@@ -1,5 +1,6 @@
 import { Code2, Search, Brain, Zap } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import GitHubImportSection from '../components/GitHubImportSection'
 
 export default function HomePage() {
   return (
@@ -30,6 +31,11 @@ export default function HomePage() {
             <span>Try Semantic Search</span>
           </Link>
         </div>
+      </section>
+
+      {/* GitHub Import Section */}
+      <section>
+        <GitHubImportSection />
       </section>
 
       {/* Features Section */}
