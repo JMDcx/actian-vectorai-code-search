@@ -38,7 +38,7 @@ class CodeSnippet(BaseModel):
     code_type: CodeType
     code: str
     start_line: int
-    end_line: int
+    end_line: number
     embedding: Optional[List[float]] = None
     metadata: CodeSnippetMetadata = Field(default_factory=CodeSnippetMetadata)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -61,17 +61,8 @@ class IndexResponse(BaseModel):
 class SearchRequest(BaseModel):
     """Request to search codebase."""
     query: str
-    limit: int = Field(default=10, ge=1, le=100)
+    limit: int = Field(default=10, ge=1, le=50)
     threshold: float = Field(default=0.7, ge=0.0, le=1.0)
-
-    # Filter fields
-    language: Optional[Language] = None
-    code_type: Optional[CodeType] = None
-    file_path_pattern: Optional[str] = Field(default=None, max_length=200)
-    sort_by: Optional[str] = Field(
-        default="similarity",
-        pattern="^(similarity|file_path|complexity)$"
-    )
 
 
 class SearchResultItem(BaseModel):

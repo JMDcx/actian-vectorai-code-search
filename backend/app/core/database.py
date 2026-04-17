@@ -78,8 +78,7 @@ class VectorAIDBClient:
         self,
         query_vector: List[float],
         limit: int = 10,
-        threshold: float = 0.7,
-        search_filter: Optional[Any] = None
+        threshold: float = 0.7
     ) -> List[Dict[str, Any]]:
         """Search for similar vectors in VectorAI DB."""
         try:
@@ -87,8 +86,7 @@ class VectorAIDBClient:
             results = await self._client.points.search(
                 self.collection,
                 vector=query_vector,
-                limit=limit,
-                filter=search_filter
+                limit=limit
             )
             # Filter by threshold and convert to dict format
             filtered = [

@@ -28,10 +28,6 @@ export interface SearchRequest {
   query: string
   limit?: number
   threshold?: number
-  language?: 'python' | 'javascript' | 'typescript'
-  code_type?: 'function' | 'class' | 'import'
-  file_path_pattern?: string
-  sort_by?: 'similarity' | 'file_path' | 'complexity'
 }
 
 export interface SearchResponse {

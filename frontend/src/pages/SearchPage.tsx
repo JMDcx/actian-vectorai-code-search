@@ -1,10 +1,7 @@
 import { useState } from 'react'
-import { Search as SearchIcon, Loader2, FileCode, AlertCircle, SlidersHorizontal } from 'lucide-react'
+import { Search as SearchIcon, Loader2, FileCode, AlertCircle } from 'lucide-react'
 import Editor from '@monaco-editor/react'
 import axios from 'axios'
-import { SearchRequest } from '../types/api'
-import SearchFiltersModal from '../components/SearchFiltersModal'
-import { ActiveFilterTags } from '../components/ActiveFilterTags'
 
 interface SearchResult {
   snippet: {
@@ -30,11 +27,6 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
-  const [filters, setFilters] = useState<Partial<SearchRequest>>({
-    limit: 10,
-    threshold: 0.7
-  })
-  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false)
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,15 +38,11 @@ export default function SearchPage() {
     setResults([])
     setSelectedCode(null)
 
-    await performSearch(query)
-  }
-
-  const performSearch = async (searchQuery: string, searchFilters?: Partial<SearchRequest>) => {
     try {
-      const activeFilters = searchFilters || filters
       const response = await axios.post('/api/search/', {
-        query: searchQuery,
-        ...activeFilters
+        query,
+        limit: 10,
+        threshold: 0.7
       })
 
       setResults(response.data.results)
@@ -65,61 +53,6 @@ export default function SearchPage() {
     }
   }
 
-  const handleApplyFilters = (newFilters: Partial<SearchRequest>) => {
-    setFilters(newFilters)
-    setIsFiltersModalOpen(false)
-
-    // Trigger search with new filters if we have a query
-    if (query.trim()) {
-      setLoading(true)
-      setError('')
-      setResults([])
-      setSelectedCode(null)
-      performSearch(query, newFilters)
-    }
-  }
-
-  const handleRemoveFilter = (filterKey: keyof SearchRequest) => {
-    const updatedFilters = { ...filters }
-    delete updatedFilters[filterKey]
-
-    // Restore defaults if needed
-    if (filterKey === 'limit') {
-      updatedFilters.limit = 10
-    }
-    if (filterKey === 'threshold') {
-      updatedFilters.threshold = 0.7
-    }
-
-    setFilters(updatedFilters)
-
-    // Trigger search with updated filters if we have a query
-    if (query.trim()) {
-      setLoading(true)
-      setError('')
-      setResults([])
-      setSelectedCode(null)
-      performSearch(query, updatedFilters)
-    }
-  }
-
-  const handleClearAllFilters = () => {
-    const defaultFilters = {
-      limit: 10,
-      threshold: 0.7
-    }
-    setFilters(defaultFilters)
-
-    // Trigger search with default filters if we have a query
-    if (query.trim()) {
-      setLoading(true)
-      setError('')
-      setResults([])
-      setSelectedCode(null)
-      performSearch(query, defaultFilters)
-    }
-  }
-
   const getLanguage = (lang: string): string => {
     const map: Record<string, string> = {
       'python': 'python',
@@ -127,17 +60,6 @@ export default function SearchPage() {
       'typescript': 'typescript'
     }
     return map[lang] || 'plaintext'
-  }
-
-  const getActiveFilterCount = (): number => {
-    return Object.entries(filters).filter(
-      ([key, value]) =>
-        key !== 'query' &&
-        key !== 'limit' &&
-        key !== 'threshold' &&
-        value !== undefined &&
-        value !== ''
-    ).length
   }
 
   return (
@@ -165,19 +87,6 @@ export default function SearchPage() {
             />
           </div>
           <button
-            type="button"
-            onClick={() => setIsFiltersModalOpen(true)}
-            className="relative px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg font-medium transition-colors flex items-center space-x-2"
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-            <span>Filters</span>
-            {getActiveFilterCount() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {getActiveFilterCount()}
-              </span>
-            )}
-          </button>
-          <button
             type="submit"
             disabled={loading || !query.trim()}
             className="px-8 py-4 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium transition-colors flex items-center space-x-2"
@@ -196,13 +105,6 @@ export default function SearchPage() {
           </button>
         </div>
       </form>
-
-      {/* Active Filter Tags */}
-      <ActiveFilterTags
-        filters={filters}
-        onRemoveFilter={handleRemoveFilter}
-        onClearAll={handleClearAllFilters}
-      />
 
       {/* Error Message */}
       {error && (
@@ -312,15 +214,6 @@ export default function SearchPage() {
           />
         </div>
       )}
-
-      {/* Filters Modal */}
-      <SearchFiltersModal
-        isOpen={isFiltersModalOpen}
-        filters={filters}
-        onApply={handleApplyFilters}
-        onReset={handleClearAllFilters}
-        onClose={() => setIsFiltersModalOpen(false)}
-      />
     </div>
   )
 }
