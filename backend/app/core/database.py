@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any, List
+import numpy as np
 from actian_vectorai import AsyncVectorAIClient, VectorParams, Distance, PointStruct
 from app.core.config import settings
 
@@ -116,6 +117,33 @@ class VectorAIDBClient:
             return None
         except Exception:
             return None
+
+    async def get_similarity(self, id1: str, id2: str) -> float:
+        """Get similarity score between two vectors by their IDs."""
+        try:
+            await self._ensure_client()
+            points = await self._client.points.get(self.collection, ids=[id1, id2])
+
+            if len(points) < 2:
+                return 0.0
+
+            # Compute cosine similarity
+            vec1 = np.array(points[0].vector)
+            vec2 = np.array(points[1].vector)
+
+            dot_product = np.dot(vec1, vec2)
+            norm1 = np.linalg.norm(vec1)
+            norm2 = np.linalg.norm(vec2)
+
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+
+            similarity = dot_product / (norm1 * norm2)
+            return float(similarity)
+
+        except Exception as e:
+            print(f"Error computing similarity: {e}")
+            return 0.0
 
     async def delete_by_id(self, id: str) -> bool:
         """Delete a document by its ID."""

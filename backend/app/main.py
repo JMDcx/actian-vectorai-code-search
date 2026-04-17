@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import vectorai_client
-from app.api import index, search
+from app.api import index, search, visualization
 from app.models.schemas import HealthResponse
 
 
@@ -50,6 +50,7 @@ app.add_middleware(
 # Include routers
 app.include_router(index.router)
 app.include_router(search.router)
+app.include_router(visualization.router)
 
 
 @app.get("/", response_model=HealthResponse)
