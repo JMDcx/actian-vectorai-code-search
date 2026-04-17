@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import vectorai_client
-from app.api import index, search, visualization, github
+from app.api import index, search, visualization, github, websocket
 from app.models.schemas import HealthResponse
 
 
@@ -52,6 +52,7 @@ app.include_router(index.router)
 app.include_router(search.router)
 app.include_router(visualization.router)
 app.include_router(github.router)
+app.include_router(websocket.router)
 
 
 @app.get("/", response_model=HealthResponse)
