@@ -70,7 +70,7 @@ export function useGitHubImport() {
             case 'complete':
               setState({
                 status: 'completed',
-                currentStep: 'completed',
+                currentStep: null,
                 progress: 100,
                 error: null,
                 stats: msg.stats || null
