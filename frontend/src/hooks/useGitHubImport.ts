@@ -1,7 +1,7 @@
 // frontend/src/hooks/useGitHubImport.ts
-import { useState, useCallback, useRef } from 'react'
-import axios from 'axios'
-import { ImportState, ImportStats, WebSocketMessage } from '../types/github'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { ImportState, WebSocketMessage } from '../types/github'
+import { api } from '../services/api'
 
 const initialState: ImportState = {
   status: 'idle',
@@ -15,6 +15,16 @@ export function useGitHubImport() {
   const [state, setState] = useState<ImportState>(initialState)
   const wsRef = useRef<WebSocket | null>(null)
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+    }
+  }, [])
+
   const reset = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close()
@@ -24,11 +34,17 @@ export function useGitHubImport() {
   }, [])
 
   const startImport = useCallback(async (url: string) => {
+    // Close any existing WebSocket before starting new import
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+
     try {
       setState({ status: 'importing', currentStep: null, progress: 0, error: null, stats: null })
 
       // Start import task
-      const resp = await axios.post('/api/github/import', { url })
+      const resp = await api.post('/api/github/import', { url })
       const taskId = resp.data.task_id
 
       // Determine WebSocket URL based on current location
@@ -99,12 +115,17 @@ export function useGitHubImport() {
         })
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      let errorMessage = 'Import failed'
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { data?: { detail?: string } } }
+        errorMessage = axiosError.response?.data?.detail || errorMessage
+      }
       setState({
         status: 'error',
         currentStep: null,
         progress: 0,
-        error: err.response?.data?.detail || 'Import failed',
+        error: errorMessage,
         stats: null
       })
     }
