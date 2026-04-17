@@ -1,7 +1,5 @@
 # backend/app/services/github_importer.py
 import re
-import git
-import tempfile
 import aiohttp
 from pathlib import Path
 from typing import Tuple, Optional, Callable, Awaitable
@@ -78,9 +76,9 @@ class GitHubImporter:
                     # GitHub API returns size in KB
                     size_kb = data.get("size", 0)
                     return size_kb / 1024  # Convert to MB
+        except asyncio.TimeoutError:
+            raise RepositoryNotFound("Request timeout")
         except aiohttp.ClientError as e:
-            if isinstance(e, asyncio.TimeoutError):
-                raise RepositoryNotFound("Request timeout")
             raise RepositoryNotFound(f"Failed to fetch repository info: {str(e)}")
 
     async def _emit_progress(self, step: str, progress: int, message: str):

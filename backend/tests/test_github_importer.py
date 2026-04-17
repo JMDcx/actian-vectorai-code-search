@@ -1,5 +1,6 @@
 # backend/tests/test_github_importer.py
 import asyncio
+import aiohttp
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.services.github_importer import GitHubImporter, RepositoryTooLarge, RepositoryNotFound
 import pytest
@@ -65,3 +66,23 @@ async def test_check_repo_size_exceeds_limit():
     with patch('aiohttp.ClientSession', return_value=mock_session):
         size_mb = await importer._check_repo_size("user", "repo")
     assert size_mb > 50
+
+@pytest.mark.asyncio
+async def test_check_repo_size_not_found():
+    """Test that 404 response raises RepositoryNotFound."""
+    importer = GitHubImporter()
+    mock_response = AsyncMock()
+    mock_response.status = 404
+
+    mock_get = AsyncMock(return_value=mock_response)
+    mock_get.__aenter__ = AsyncMock(return_value=mock_response)
+    mock_get.__aexit__ = AsyncMock(return_value=None)
+
+    mock_session = MagicMock()
+    mock_session.get = MagicMock(return_value=mock_get)
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=None)
+
+    with patch('aiohttp.ClientSession', return_value=mock_session):
+        with pytest.raises(RepositoryNotFound):
+            await importer._check_repo_size("user", "nonexistent-repo")
