@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import Tuple, Optional, Callable, Awaitable
 from datetime import datetime, timedelta
 import asyncio
+import logging
 from app.services.embeddings import embedding_service
+
+logger = logging.getLogger(__name__)
 
 
 _temp_dirs = {}  # task_id -> (dir_path, created_at)
@@ -149,16 +152,20 @@ class GitHubImporter:
             TooManyFiles: If repo has too many files
             RepositoryNotFound: If repo not found
         """
+        logger.info(f"import_repo started: url={url}, task_id={task_id}")
         # Step 1: Parse URL
         await self._emit_progress("cloning", 0, "Validating repository...")
         parsed = self._parse_github_url(url)
         if not parsed:
             raise ValueError("Invalid GitHub URL format")
         owner, repo = parsed
+        logger.info(f"Parsed URL: owner={owner}, repo={repo}")
 
         # Step 2: Check size
         await self._emit_progress("cloning", 5, "Checking repository size...")
+        logger.info(f"Checking repository size for {owner}/{repo}")
         size_mb = await self._check_repo_size(owner, repo)
+        logger.info(f"Repository size: {size_mb}MB")
         if size_mb > self.MAX_SIZE_MB:
             raise RepositoryTooLarge(size_mb, self.MAX_SIZE_MB)
 
@@ -198,21 +205,25 @@ class GitHubImporter:
                         embedding = await asyncio.to_thread(embedding_service.generate_embedding, snippet.code)
 
                         # Store in VectorAI DB
-                        await vectorai_client.insert_vector(
-                            id=snippet.id,
-                            vector=embedding,
-                            metadata={
-                                "file_path": snippet.file_path,
-                                "language": snippet.language.value,
-                                "code_type": snippet.code_type.value,
-                                "code": snippet.code,
-                                "start_line": snippet.start_line,
-                                "end_line": snippet.end_line,
-                                "function_name": snippet.metadata.function_name,
-                                "class_name": snippet.metadata.class_name
-                            }
-                        )
-                        total_snippets += 1
+                        try:
+                            await vectorai_client.insert_vector(
+                                id=snippet.id,
+                                vector=embedding,
+                                metadata={
+                                    "file_path": snippet.file_path,
+                                    "language": snippet.language.value,
+                                    "code_type": snippet.code_type.value,
+                                    "code": snippet.code,
+                                    "start_line": snippet.start_line,
+                                    "end_line": snippet.end_line,
+                                    "function_name": snippet.metadata.function_name,
+                                    "class_name": snippet.metadata.class_name
+                                }
+                            )
+                            total_snippets += 1
+                        except Exception as db_error:
+                            logger.warning(f"Failed to insert snippet into VectorAI DB: {db_error}")
+                            # Continue with other snippets
 
                     indexed_files += 1
                     progress = 60 + int((indexed_files / file_count) * 20)
@@ -220,7 +231,7 @@ class GitHubImporter:
                     await self._emit_progress("parsing", progress, f"Parsed {indexed_files}/{file_count} files")
 
                 except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
+                    logger.error(f"Error processing file {file_path}: {e}")
                     continue
 
             await self._emit_progress("indexing", 90, "Completing...")

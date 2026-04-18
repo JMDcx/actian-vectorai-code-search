@@ -47,9 +47,12 @@ export function useGitHubImport() {
       const resp = await api.post('/api/github/import', { url })
       const taskId = resp.data.task_id
 
-      // Determine WebSocket URL based on current location
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${protocol}//${window.location.host}/ws/github/import/${taskId}`
+      // Determine WebSocket URL - connect directly to backend port
+      const isHttps = window.location.protocol === 'https:'
+      const wsProtocol = isHttps ? 'wss:' : 'ws:'
+      // Get API URL from environment or default to localhost:8000
+      const apiHost = import.meta.env.VITE_API_URL?.replace(/^https?:\/\//, '') || 'localhost:8000'
+      const wsUrl = `${wsProtocol}//${apiHost}/ws/github/import/${taskId}`
 
       // Connect WebSocket
       const ws = new WebSocket(wsUrl)
